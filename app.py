@@ -34,7 +34,7 @@ def calc_temps(start_date, end_date):
     #    end_date (string): A date string in the format %Y-%m-%d
     #    
     # Returns:
-     #   TMIN, TAVE, and TMAX
+     #   TMIN, TAVG, and TMAX
     ##################################
     
     return session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
