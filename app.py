@@ -103,7 +103,7 @@ def stations():
 def tobs():
     print("Running api request for tobs")
 
-    # Get temperature data for the last year.  First we find the last date in the database
+    # Get temperature data for the last year.
     final_date_query = session.query(func.max(func.strftime("%Y-%m-%d", Measurement.date))).all()
     max_date_string = final_date_query[0][0]
     max_date = datetime.datetime.strptime(max_date_string, "%Y-%m-%d")
