@@ -59,7 +59,7 @@ def precipitation():
 
     print("Running api request for precipitation")
 
-    # Get precipitation data for the last year. Find the last date in the database
+    # Get precipitation data for the last year
     final_date_query = session.query(func.max(func.strftime("%Y-%m-%d", Measurement.date))).all()
     max_date_string = final_date_query[0][0]
     max_date = datetime.datetime.strptime(max_date_string, "%Y-%m-%d")
