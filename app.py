@@ -1,59 +1,49 @@
-"""
-Use flask and SQL Alchemy to simulate API requests for weather data for Honolulu, Hawaii.
-"""
-
-#import dependencies
+# Import dependencies
 import numpy as np
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
-
 from flask import Flask, jsonify
-
 import datetime
 
-#Setup database
-#create engine
+# Connect to database and create engine
 engine = create_engine("sqlite:///Resources/hawaii.sqlite?check_same_thread=False")
 
-#reflect database and tables
+# Reflect database
 Base = automap_base()
 Base.prepare(engine, reflect = True)
 
-#save table references
+# Extract tables as classes
 Measurement = Base.classes.measurement
 Station = Base.classes.station
 
-#create session
+# Open session
 session = Session(engine)
 
-#Setup Flask
+# Enable Flask
 app = Flask(__name__)
 
-#Create a function that gets minimum, average, and maximum temperatures for a range of dates
-# This function called will accept start date and end date in the format '%Y-%m-%d' 
-# and return the minimum, average, and maximum temperatures for that range of dates
+# Function to return min-avg and max temps for a date range
 def calc_temps(start_date, end_date):
-    """TMIN, TAVG, and TMAX for a list of dates.
-    
-    Args:
-        start_date (string): A date string in the format %Y-%m-%d
-        end_date (string): A date string in the format %Y-%m-%d
-        
-    Returns:
-        TMIN, TAVE, and TMAX
-    """
+    ###########j####################
+    # TMIN, TAVG, and TMAX for a list of dates.
+    #
+    # Args:
+    #    start_date (string): date string in the format %Y-%m-%d
+    #    end_date (string): A date string in the format %Y-%m-%d
+    #    
+    # Returns:
+     #   TMIN, TAVE, and TMAX
+    ##################################
     
     return session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
         filter(Measurement.date >= start_date).filter(Measurement.date <= end_date).all()
 
 
-#Set Flask Routes
-
+# List routes
 @app.route("/")
 def main():
-    """List available routes."""
     return (
         f"Available Routes:<br/>"
         f"/api/v1.0/precipitation<br/>"
@@ -65,40 +55,37 @@ def main():
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-    """Return list of data in JSON format where the date is the key and the value is 
-    the precipitation value"""
+    # Return JSON formatted data based on date and precipitation
 
-    print("Received precipitation api request.")
+    print("Running api request for precipitation")
 
-    #Get precipitation data for the last year.  First find the last date in the database
+    # Get precipitation data for the last year. Find the last date in the database
     final_date_query = session.query(func.max(func.strftime("%Y-%m-%d", Measurement.date))).all()
     max_date_string = final_date_query[0][0]
     max_date = datetime.datetime.strptime(max_date_string, "%Y-%m-%d")
 
-    # Get search start
     begin_date = max_date - datetime.timedelta(366)
 
-    # Get dates and precipitation amounts
-    precip_data = session.query(func.strftime("%Y-%m-%d", Measurement.date), Measurement.prcp).\
+    # Get dates and precipitation 
+    precipitation_data = session.query(func.strftime("%Y-%m-%d", Measurement.date), Measurement.prcp).\
         filter(func.strftime("%Y-%m-%d", Measurement.date) >= begin_date).all()
     
-    # Create dictionary with date as key and prcp value as the value
+    # Create dictionary
     results_dict = {}
-    for result in precip_data:
+    for result in precipitation_data:
         results_dict[result[0]] = result[1]
 
     return jsonify(results_dict)
 
 @app.route("/api/v1.0/stations")
 def stations():
-    """Return a list of stations."""
 
-    print("Received station api request.")
+    print("Running api request for stations")
 
-    #query stations list
+    # Select from stations table
     stations_data = session.query(Station).all()
 
-    #create a list of dictionaries
+    # Assemble dictionaries in list
     stations_list = []
     for station in stations_data:
         station_dict = {}
@@ -114,23 +101,20 @@ def stations():
 
 @app.route("/api/v1.0/tobs")
 def tobs():
-    """Return a JSON list of temperature observations for the previous year."""
+    print("Running api request for tobs")
 
-    print("Received tobs api request.")
-
-    #We find temperature data for the last year.  First we find the last date in the database
+    # Get temperature data for the last year.  First we find the last date in the database
     final_date_query = session.query(func.max(func.strftime("%Y-%m-%d", Measurement.date))).all()
     max_date_string = final_date_query[0][0]
     max_date = datetime.datetime.strptime(max_date_string, "%Y-%m-%d")
 
-    #set beginning of search query
+    # Set beginning search query
     begin_date = max_date - datetime.timedelta(366)
 
-    #get temperature measurements for last year
+    # Get previous temps 
     results = session.query(Measurement).\
         filter(func.strftime("%Y-%m-%d", Measurement.date) >= begin_date).all()
 
-    #create list of dictionaries (one for each observation)
     tobs_list = []
     for result in results:
         tobs_dict = {}
@@ -143,19 +127,17 @@ def tobs():
 
 @app.route("/api/v1.0/<start>")
 def start(start):
-    """Return a JSON list of the minimum, average, and maximum temperatures from the start date until
-    the end of the database."""
 
-    print("Received start date api request.")
+    print("Running api request for start date.")
 
-    #First we find the last date in the database
+    # Get last date
     final_date_query = session.query(func.max(func.strftime("%Y-%m-%d", Measurement.date))).all()
     max_date = final_date_query[0][0]
 
-    #get the temperatures
+    # Get temps
     temps = calc_temps(start, max_date)
 
-    #create a list
+    # Append to list
     return_list = []
     date_dict = {'start_date': start, 'end_date': max_date}
     return_list.append(date_dict)
@@ -167,24 +149,20 @@ def start(start):
 
 @app.route("/api/v1.0/<start>/<end>")
 def start_end(start, end):
-    """Return a JSON list of the minimum, average, and maximum temperatures from the start date unitl
-    the end date."""
 
-    print("Received start date and end date api request.")
+    print("Running api request for date range.")
 
-    #get the temperatures
     temps = calc_temps(start, end)
 
-    #create a list
+    # Append to list
     return_list = []
     date_dict = {'start_date': start, 'end_date': end}
     return_list.append(date_dict)
     return_list.append({'Observation': 'TMIN', 'Temperature': temps[0][0]})
     return_list.append({'Observation': 'TAVG', 'Temperature': temps[0][1]})
     return_list.append({'Observation': 'TMAX', 'Temperature': temps[0][2]})
-
     return jsonify(return_list)
 
-#code to actually run
+# Run app
 if __name__ == "__main__":
     app.run(debug = True)
